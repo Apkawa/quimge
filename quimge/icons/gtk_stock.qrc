@@ -1,0 +1,14 @@
+<RCC>
+  <qresource prefix="app" >
+    <file>guimge.png</file>
+    <file>format-justify-fill.png</file>
+    <file>exit.png</file>
+    <file>document-open.png</file>
+    <file>editcopy.png</file>
+    <file>gtk-close.png</file>
+    <file>edit-clear.png</file>
+    <file>gtk-go-up.png</file>
+    <file>gtk-cancel.png</file>
+    <file>gnome-settings.png</file>
+  </qresource>
+</RCC>
