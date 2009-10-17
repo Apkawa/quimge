@@ -176,8 +176,8 @@
           <property name="uniformItemSizes">
            <bool>true</bool>
           </property>
-          <property name="batchSize">
-           <number>1003</number>
+          <property name="wordWrap">
+           <bool>true</bool>
           </property>
          </widget>
         </item>
@@ -284,6 +284,8 @@
      <string>File</string>
     </property>
     <addaction name="actionLoad_images"/>
+    <addaction name="actionLoad_images_from_folder"/>
+    <addaction name="separator"/>
     <addaction name="actionExit_2"/>
    </widget>
    <addaction name="menuFile"/>
@@ -352,6 +354,11 @@
    </property>
    <property name="text">
     <string>Load images</string>
+   </property>
+  </action>
+  <action name="actionLoad_images_from_folder">
+   <property name="text">
+    <string>Load images from folder</string>
    </property>
   </action>
  </widget>
