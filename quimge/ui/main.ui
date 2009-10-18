@@ -68,6 +68,9 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="toolTip">
+             <string>Select image hosting</string>
+            </property>
             <property name="maxVisibleItems">
              <number>30</number>
             </property>
@@ -97,6 +100,9 @@
           </item>
           <item>
            <widget class="QPushButton" name="DeleteSelected">
+            <property name="toolTip">
+             <string>Delete selected</string>
+            </property>
             <property name="styleSheet">
              <string notr="true"/>
             </property>
@@ -114,6 +120,9 @@
           </item>
           <item>
            <widget class="QPushButton" name="ClearUploadList">
+            <property name="toolTip">
+             <string>Clear</string>
+            </property>
             <property name="text">
              <string/>
             </property>
@@ -146,6 +155,9 @@
         </item>
         <item>
          <widget class="QListWidget" name="UploadList">
+          <property name="toolTip">
+           <string>Upload list</string>
+          </property>
           <property name="selectionMode">
            <enum>QAbstractItemView::ExtendedSelection</enum>
           </property>
@@ -243,11 +255,71 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="HistoryTab">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="autoFillBackground">
+        <bool>false</bool>
+       </property>
+       <attribute name="title">
+        <string>History</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_5">
+          <item>
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string>Sort by</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboBox"/>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_3">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>Filter</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit"/>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QListWidget" name="listWidget"/>
+        </item>
+       </layout>
+      </widget>
      </widget>
     </item>
    </layout>
   </widget>
-  <widget class="QStatusBar" name="statusBar"/>
+  <widget class="QStatusBar" name="statusBar">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="sizeGripEnabled">
+    <bool>true</bool>
+   </property>
+  </widget>
   <widget class="QToolBar" name="toolBar">
    <property name="cursor">
     <cursorShape>ArrowCursor</cursorShape>
@@ -288,7 +360,29 @@
     <addaction name="separator"/>
     <addaction name="actionExit_2"/>
    </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <addaction name="actionUpload_2"/>
+    <addaction name="actionUpload_selected"/>
+   </widget>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>Settings</string>
+    </property>
+    <addaction name="actionPreferences"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
+   <addaction name="menuSettings"/>
+   <addaction name="menuHelp"/>
   </widget>
   <action name="action_Open">
    <property name="checkable">
@@ -361,13 +455,38 @@
     <string>Load images from folder</string>
    </property>
   </action>
+  <action name="actionUpload_2">
+   <property name="text">
+    <string>Upload</string>
+   </property>
+  </action>
+  <action name="actionUpload_selected">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Upload select</string>
+   </property>
+  </action>
+  <action name="actionPreferences">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Preferences</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
+   </property>
+  </action>
  </widget>
  <tabstops>
   <tabstop>tabWidget</tabstop>
   <tabstop>SelectHost</tabstop>
   <tabstop>UploadList</tabstop>
   <tabstop>DeleteSelected</tabstop>
-  <tabstop>ClearUploadList</tabstop>
   <tabstop>ModePrint</tabstop>
   <tabstop>Delimiter</tabstop>
  </tabstops>

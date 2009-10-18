@@ -26,6 +26,7 @@ from PyQt4 import QtCore, QtGui, uic
 DEBUG = True
 if DEBUG:
     Ui_qUimge_main = uic.loadUiType("ui/main.ui")[0]
+    Ui_About = uic.loadUiType("ui/about.ui")[0]
 else:
     from ui.main import Ui_qUimge_main
 
@@ -33,6 +34,12 @@ from icons import gtk_stock_rc
 import sys, os
 
 import uimge
+def About(parent=None):
+        about_dialog = Ui_About()
+        dialog = QtGui.QDialog( parent )
+        about_dialog.setupUi( dialog )
+        return dialog
+
 
 class qUimge( QtGui.QMainWindow ):
     default_host = 'radikal.ru'
@@ -49,7 +56,6 @@ class qUimge( QtGui.QMainWindow ):
         self.WidgetsTree = Ui_qUimge_main()
         self.WidgetsTree.setupUi( self )
         self.clipboard = self.app.clipboard()
-
         self.progressBar = self.WidgetsTree.progressBar
         self.progressBar.setMinimum( 0)
         self.BoxProgress = self.WidgetsTree.BoxProgress
@@ -57,6 +63,8 @@ class qUimge( QtGui.QMainWindow ):
 
         self.upload_list = self.WidgetsTree.UploadList
         self.WidgetsTree.UploadTab.installEventFilter( self) #set key press for upload tab
+
+        self.about_dialog = About(self)
 
 
         style = self.app.style()
@@ -97,7 +105,9 @@ class qUimge( QtGui.QMainWindow ):
         connect(self.WidgetsTree.action_Open, SIGNAL("activated()"), self._open_file)
         connect(self.WidgetsTree.actionLoad_images, SIGNAL("activated()"), self._open_file)
         connect(self.WidgetsTree.actionLoad_images_from_folder, SIGNAL("activated()"), self._open_folder)
+        connect(self.WidgetsTree.actionAbout, SIGNAL("activated()"), self.about_dialog.exec_ )
         connect(self.WidgetsTree.actionUpload, SIGNAL("activated()"), self._upload)
+        connect(self.WidgetsTree.actionUpload_2, SIGNAL("activated()"), self._upload)
         connect(self.WidgetsTree.actionClipboard, SIGNAL("activated()"), self._copy_to_clipboard)
 
         connect(self.WidgetsTree.ModePrint, SIGNAL("textChanged(QString)"), self._update_result)
@@ -114,6 +124,7 @@ class qUimge( QtGui.QMainWindow ):
         '''
         Create File List
         '''
+        self._update_summary()
         if filenames:
             self._add_files( filenames )
 
@@ -257,8 +268,8 @@ class qUimge( QtGui.QMainWindow ):
         for i in items:
             it = self.upload_list.takeItem( self.upload_list.row(i))
             it = None
+        self._update_summary()
 
-        pass
     def _set_current_host( self):
         cur_h  = self.WidgetsTree.SelectHost.currentIndex()
         host_key = self.WidgetsTree.SelectHost.itemData(cur_h).toPyObject()
@@ -328,6 +339,7 @@ class qUimge( QtGui.QMainWindow ):
                     icon.actualSize( QtCore.QSize( 50,50) )
                     item = QtGui.QListWidgetItem( icon, d , self.upload_list)
                     item.setSizeHint( QtCore.QSize( 100+23,100+46) )
+        StandardIcon()
 
 
 def human(num, prefix=" ", suffix='b'):
