@@ -111,7 +111,7 @@ class qUimge( QtGui.QMainWindow ):
         connect(self.WidgetsTree.actionClipboard, SIGNAL("activated()"), self._copy_to_clipboard)
 
         connect(self.WidgetsTree.ModePrint, SIGNAL("textChanged(QString)"), self._update_result)
-        connect(self.WidgetsTree.ModePrint, SIGNAL("currentIndexChanged(int)"), self._update_result)
+        #connect(self.WidgetsTree.ModePrint, SIGNAL("currentIndexChanged(int)"), self._update_result)
         connect(self.WidgetsTree.Delimiter, SIGNAL("textChanged(QString)"), self._set_delim)
         connect(self.WidgetsTree.DeleteSelected, SIGNAL("clicked()"), self._clear_selected)
 
@@ -306,13 +306,12 @@ class qUimge( QtGui.QMainWindow ):
         if index_or_str:
             mp = self.WidgetsTree.ModePrint
             ci = mp.currentIndex()
-            if type( index_or_str) == int:
-                if mp.itemData(index_or_str).isValid():
-                    self.Outprint.set_rules( key=str(mp.itemData(index_or_str).toString()) )
-                else:
-                    self.Outprint.set_rules( usr=str(mp.itemText(index_or_str)) )
-            elif type( index_or_str ) == QtCore.QString and mp.itemData(ci).isNull():
+            item_data = mp.itemData( ci )
+            if type( index_or_str ) == QtCore.QString:
+                if mp.itemData(ci).isNull():
                     self.Outprint.set_rules( usr=str(index_or_str) )
+                else:
+                    self.Outprint.set_rules( key=str( item_data.toString()) )
 
 
         _result = self.delimiter.join([ self.Outprint.get_out( r[0], r[1], r[2]) for r in self.result] )
