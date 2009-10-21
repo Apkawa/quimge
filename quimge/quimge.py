@@ -22,27 +22,30 @@
 #
 #You can contact author by email <my email>
 ###
-from PyQt4 import QtCore, QtGui, uic
+from PyQt4 import QtCore, QtGui
 DEBUG = True
 if DEBUG:
+    from PyQt4 import uic
     Ui_qUimge_main = uic.loadUiType("ui/main.ui")[0]
-    Ui_About = uic.loadUiType("ui/about.ui")[0]
+    Ui_qUimge_about = uic.loadUiType("ui/about.ui")[0]
 else:
     from ui.main import Ui_qUimge_main
+    from ui.about import Ui_qUimge_about
+
 
 from icons import gtk_stock_rc
 import sys, os
 
 import uimge
 def About(parent=None):
-        about_dialog = Ui_About()
+        about_dialog = Ui_qUimge_about()
         dialog = QtGui.QDialog( parent )
         about_dialog.setupUi( dialog )
         return dialog
 
-
 class qUimge( QtGui.QMainWindow ):
     default_host = 'radikal.ru'
+    lastdir = QtCore.QDir().homePath()
     Uimge = uimge.Uimge()
     Outprint = uimge.Outprint()
     result = []
@@ -164,18 +167,14 @@ class qUimge( QtGui.QMainWindow ):
             selhost.addItem( ico, host, _hosts.get( host) )
         selhost.setCurrentIndex( _h.index( self.default_host ))
 
-    def _add_file(self, _file):
+    def _add_file(self, fileinfo):
         '''docstring for _add_file'''
         thumb_size = 100
         max_length_filename = thumb_size/9
 
-        _uf = unicode(_file, 'utf-8')
-        _qf = QtCore.QString(_file )
-        fileinfo = QtCore.QFileInfo( _qf)
-
-        px = QtGui.QPixmap( _qf )
-        _qsize = px.size()
-        if _qsize.isNull():
+        path = fileinfo.filePath()
+        px = QtGui.QPixmap( path )
+        if px.size().isNull():
             return
         filename = fileinfo.fileName()
         size = fileinfo.size()
@@ -189,27 +188,28 @@ class qUimge( QtGui.QMainWindow ):
             filename = '%s'%(
                     filename,
                     )
+
         text_item ="%(name)s \n [%(size)s]"%{'size': size_str, 'name':filename }
 
         icon = QtGui.QIcon()
         icon.addPixmap( px.scaledToHeight( thumb_size )  )
-        data = {'path':_qf,'size': size, 'human_size': size_str, 'fileinfo':fileinfo }
+        data = {'path': path ,'size': size, 'human_size': size_str, 'fileinfo':fileinfo }
         item = QtGui.QListWidgetItem( icon, text_item, self.upload_list )
         item.setData( QtCore.Qt.UserRole,QtCore.QVariant( data ) )
-        item.setToolTip( _uf)
+        item.setToolTip( path)
         item.setSizeHint( QtCore.QSize( thumb_size+23,thumb_size+46) )
 
     def _add_files(self, _files):
         '''docstring for _add_files'''
         file_list = []
         for f in _files:
-            if not os.path.isdir( f):
+            f = QtCore.QFileInfo(f)
+            if f.isFile():
                 file_list.append(f)
             else:
-                for filename in os.listdir( f ):
-                    path = os.path.join( str(f), filename)
-                    if os.path.isfile( path ):
-                        file_list.append( path )
+                for filename in QtCore.QDir( f.absoluteFilePath() ).entryInfoList():
+                    if filename.isFile():
+                        file_list.append( filename )
 
         current_file_count = 0
         files_count = len(file_list)
@@ -249,16 +249,41 @@ class qUimge( QtGui.QMainWindow ):
         self.WidgetsTree.statusBar.showMessage( status_str )
 
 
+    def __open_file(self):
+        '''docstring for _open_file
+        Вызывается чисто Qt диалог без предпросмотра.
+        '''
+        _args = ( self,
+                  "select images",
+                  self.lastdir,
+                  "images (*%s)" % ' *'.join([ i for i in self.image_type])
+                  )
+        dialog = QtGui.QFileDialog( *_args )
+        dialog.setFileMode( QtGui.QFileDialog.AnyFile)
+        dialog.setViewMode( QtGui.QFileDialog.Detail)
+        dialog.setOption( QtGui.QFileDialog.DontUseNativeDialog, False)
+        dialog.setOption( QtGui.QFileDialog.DontUseSheet, True)
+        if dialog.exec_():
+            filename = dialog.selectedFiles()
+            print dialog.directory().path()
+            self._add_files( filename)
+
     def _open_file(self):
         '''docstring for _open_file'''
-        dialog = QtGui.QFileDialog( )
-        filename = dialog.getOpenFileNames( self,"select images", "/home/apkawa","images (*%s)" % ' *'.join([ i for i in self.image_type]))
+        _args = ( self,
+                  "select images",
+                  self.lastdir,
+                  "images (*%s)" % ' *'.join([ i for i in self.image_type])
+                  )
+        filenames = QtGui.QFileDialog( ).getOpenFileNames( *_args )
+        self.lastdir = QtCore.QFileInfo( filenames[0] ).absolutePath()
+        self._add_files( filenames )
 
-        self._add_files( filename)
     def _open_folder(self):
         '''docstring for _open_folder'''
         dialog = QtGui.QFileDialog( )
-        filename = dialog.getExistingDirectory( self,"select folder", "/home/apkawa" )
+        filename = dialog.getExistingDirectory( self,"select folder", self.lastdir )
+        self.lastdir = QtCore.QFileInfo( filename ).absoluteFilePath()
         self._add_files( [filename])
 
 
@@ -321,6 +346,7 @@ class qUimge( QtGui.QMainWindow ):
             return True
         else:
             return False
+
     def _set_delim(self, delim):
         self.delimiter = str(self.WidgetsTree.Delimiter.currentText()).replace("\\n",'\n')
         self._update_result()
