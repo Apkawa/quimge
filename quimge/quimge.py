@@ -23,11 +23,13 @@
 #You can contact author by email <my email>
 ###
 from PyQt4 import QtCore, QtGui
+from PyQt4.QtCore import QString, QDir, QFileInfo
 DEBUG = True
 if DEBUG:
     from PyQt4 import uic
     Ui_qUimge_main = uic.loadUiType("ui/main.ui")[0]
     Ui_qUimge_about = uic.loadUiType("ui/about.ui")[0]
+    Ui_qUimge_setting = uic.loadUiType("ui/setting.ui")[0]
 else:
     from ui.main import Ui_qUimge_main
     from ui.about import Ui_qUimge_about
@@ -37,27 +39,102 @@ from icons import gtk_stock_rc
 import sys, os
 
 import uimge
+
+APPNAME = 'quimge'
+ORGNAME = 'Apkawa Inc'
+VERSION = '0.0.2'
+
 def About(parent=None):
-        about_dialog = Ui_qUimge_about()
-        dialog = QtGui.QDialog( parent )
-        about_dialog.setupUi( dialog )
-        return dialog
+    about_dialog = Ui_qUimge_about()
+    dialog = QtGui.QDialog( parent )
+    about_dialog.setupUi( dialog )
+    return dialog
+
+class qUimge_setting_dialog( object):
+    def __init__(self, _QSetting, parent=None):
+        '''docstring for __init__'''
+        self.setting_dialog = Ui_qUimge_setting()
+        self.dialog = QtGui.QDialog( parent )
+        self.setting_dialog.setupUi( self.dialog )
+        self.QSetting = _QSetting
+
+        self.setting_dialog.list_styles.addItems( QtGui.QStyleFactory.keys() )
+
+        default_host_lauout = self.setting_dialog.default_host.layout()
+        default_host = QtGui.QComboBox(parent.WidgetsTree.SelectHost)
+        default_host_lauout.addWidget(default_host)
+    def set_signals(self):
+        connect = self.dialog.connect
+        SIGNAL = QtCore.SIGNAL
+        SLOT = QtCore.SLOT
+        connect( self.setting_dialog.list_styles, SIGNAL("currentIndexChanged(QString)", self._set_style) )
+        pass
+    def exec_(self):
+        self.dialog.exec_()
+    def _set_style(self, string):
+        self.dialog.setStyle(string)
+
+class UploadThread( QtCore.QThread):
+    def __init__(self, parent=None):
+        '''docstring for __init__'''
+        QtCore.QThread.__init__( self, parent)
+        self.uploading = True
+        pass
+    def setup(self, Uimge,  path):
+        self.uploading = True
+        self.Uimge = Uimge
+        self.path = path
+    def run(self):
+        self.Uimge.upload( self.path)
+        self.uploading = False
+
+    def result(self):
+        return ( self.Uimge.img_url,
+                    self.Uimge.img_thumb_url,
+                    self.Uimge.filename
+                    )
+
+
+
+class Setting:
+    def __init__(self):
+        '''docstring for __init__'''
+        self.setting = QtCore.QSettings(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, ORGNAME, APPNAME )
+        pass
+    def set(self, key, val):
+        '''docstring for set'''
+        self.setting.setValue( key, QtCore.QVariant( val ) )
+    def get(self, key, default=''):
+        '''docstring for get'''
+        _res = self.setting.value( key )
+        if _res.isNull():
+            return default
+        else:
+            return _res
 
 class qUimge( QtGui.QMainWindow ):
-    default_host = 'radikal.ru'
-    lastdir = QtCore.QDir().homePath()
     Uimge = uimge.Uimge()
     Outprint = uimge.Outprint()
-    result = []
+    stop = False
     delimiter = r'\n'
     image_type = ('.png', '.jpe', '.jpg', '.jpeg', '.gif', '.bmp')
     def __init__(self, parent=None):
         '''docstring for __init__'''
+        self.Setting = QtCore.QSettings(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, ORGNAME, APPNAME )
+        self.Setting.beginGroup('General')
+        self.lastdir = self.Setting.value('lastdir', QtCore.QDir().homePath() ).toString()
+        self.default_host = self.Setting.value('default_host','radikal.ru').toString()
+        _style = self.Setting.value('style','qtcurve').toString()
+        self.Setting.endGroup()
+
         self.app = QtGui.QApplication(sys.argv)
         QtGui.QWidget.__init__(self, parent)
-        #self.app.setStyle("windows")
+        self.app.setStyle( _style)
         self.WidgetsTree = Ui_qUimge_main()
         self.WidgetsTree.setupUi( self )
+
+        self.event_loop = QtCore.QEventLoop()
+
         self.clipboard = self.app.clipboard()
         self.progressBar = self.WidgetsTree.progressBar
         self.progressBar.setMinimum( 0)
@@ -68,6 +145,7 @@ class qUimge( QtGui.QMainWindow ):
         self.WidgetsTree.UploadTab.installEventFilter( self) #set key press for upload tab
 
         self.about_dialog = About(self)
+        self.setting_dialog = qUimge_setting_dialog( self.Setting, self)
 
 
         style = self.app.style()
@@ -84,9 +162,11 @@ class qUimge( QtGui.QMainWindow ):
         self.show()
         self._initFileListIcons(files)
         sys.exit( self.app.exec_() )
+
     def exit(self):
         self.close()
         sys.exit()
+
     def eventFilter(self, obj, event):
         #http://www.commandprompt.com/community/pyqt/x5469
         #http://www.nabble.com/Mayavi,-VTK-and-PyQt-td21894370.html
@@ -95,10 +175,10 @@ class qUimge( QtGui.QMainWindow ):
             if QtGui.QKeySequence.Delete == event:
                 self._clear_selected()
         return QtGui.QWidget.eventFilter(self, obj, event)
+
     def keyPress_Event(self, event):
         print event
         event.ignore()
-
 
     def _init_SIGNALS(self):
         '''docstring for _init_SIGNALS'''
@@ -108,20 +188,20 @@ class qUimge( QtGui.QMainWindow ):
         connect(self.WidgetsTree.action_Open, SIGNAL("activated()"), self._open_file)
         connect(self.WidgetsTree.actionLoad_images, SIGNAL("activated()"), self._open_file)
         connect(self.WidgetsTree.actionLoad_images_from_folder, SIGNAL("activated()"), self._open_folder)
-        connect(self.WidgetsTree.actionAbout, SIGNAL("activated()"), self.about_dialog.exec_ )
         connect(self.WidgetsTree.actionUpload, SIGNAL("activated()"), self._upload)
         connect(self.WidgetsTree.actionUpload_2, SIGNAL("activated()"), self._upload)
         connect(self.WidgetsTree.actionClipboard, SIGNAL("activated()"), self._copy_to_clipboard)
+        connect(self.WidgetsTree.actionAbout, SIGNAL("activated()"), self.about_dialog.exec_ )
+        connect(self.WidgetsTree.actionPreferences, SIGNAL("activated()"), self.setting_dialog.exec_ )
 
+        connect(self.WidgetsTree.StopButton, SIGNAL("clicked()"), self._stop_process )
         connect(self.WidgetsTree.ModePrint, SIGNAL("textChanged(QString)"), self._update_result)
-        #connect(self.WidgetsTree.ModePrint, SIGNAL("currentIndexChanged(int)"), self._update_result)
         connect(self.WidgetsTree.Delimiter, SIGNAL("textChanged(QString)"), self._set_delim)
         connect(self.WidgetsTree.DeleteSelected, SIGNAL("clicked()"), self._clear_selected)
 
         connect( self.upload_list, SIGNAL("itemSelectionChanged()"), self._update_summary)
         connect( self.WidgetsTree.ClearUploadList, SIGNAL("clicked()"), self._update_summary)
         connect( self.WidgetsTree.DeleteSelected, SIGNAL("clicked()"), self._update_summary)
-
 
     def _initFileListIcons(self, filenames=None):
         '''
@@ -214,6 +294,7 @@ class qUimge( QtGui.QMainWindow ):
         current_file_count = 0
         files_count = len(file_list)
 
+        self._stop_process(False)
         self.BoxProgress.show()
         self.progressBar.setMaximum( files_count )
         for f in file_list:
@@ -221,6 +302,8 @@ class qUimge( QtGui.QMainWindow ):
             self._add_file( f)
             while self.app.processEvents():
                 pass
+            if self.stop:
+                break
             self._update_summary()
             current_file_count += 1
 
@@ -236,7 +319,7 @@ class qUimge( QtGui.QMainWindow ):
         for i in xrange(all_files):
             item = self.upload_list.item(i)
             data = item.data( QtCore.Qt.UserRole).toPyObject()
-            size = data.get( QtCore.QString('size') )
+            size = data.get( QString('size') )
             all_size += size
             if item.isSelected():
                 selected += 1
@@ -248,8 +331,7 @@ class qUimge( QtGui.QMainWindow ):
 
         self.WidgetsTree.statusBar.showMessage( status_str )
 
-
-    def __open_file(self):
+    def __open_file(self):#
         '''docstring for _open_file
         Вызывается чисто Qt диалог без предпросмотра.
         '''
@@ -276,16 +358,17 @@ class qUimge( QtGui.QMainWindow ):
                   "images (*%s)" % ' *'.join([ i for i in self.image_type])
                   )
         filenames = QtGui.QFileDialog( ).getOpenFileNames( *_args )
-        self.lastdir = QtCore.QFileInfo( filenames[0] ).absolutePath()
-        self._add_files( filenames )
+        if filenames:
+            self.lastdir = QtCore.QFileInfo( filenames[0] ).absolutePath()
+            self._add_files( filenames )
 
     def _open_folder(self):
         '''docstring for _open_folder'''
         dialog = QtGui.QFileDialog( )
         filename = dialog.getExistingDirectory( self,"select folder", self.lastdir )
-        self.lastdir = QtCore.QFileInfo( filename ).absoluteFilePath()
-        self._add_files( [filename])
-
+        if filename:
+            self.lastdir = QtCore.QFileInfo( filename ).absoluteFilePath()
+            self._add_files( [filename])
 
     def _clear_selected(self):
         '''docstring for _clear_selected'''
@@ -294,37 +377,50 @@ class qUimge( QtGui.QMainWindow ):
             it = self.upload_list.takeItem( self.upload_list.row(i))
             it = None
         self._update_summary()
+        self._update_result()
 
     def _set_current_host( self):
         cur_h  = self.WidgetsTree.SelectHost.currentIndex()
         host_key = self.WidgetsTree.SelectHost.itemData(cur_h).toPyObject()
         self.Uimge.set_host( host_key   )
+
     def _upload(self):
         '''docstring for _upload'''
-        self.result = []
-        def _uploading_thread():
-            pass
-        self._set_current_host()
+        def preupload():
+            self._stop_process(False)
+            self._set_current_host()
+            self.WidgetsTree.actionUpload.setEnabled(False)
+            self.WidgetsTree.actionUpload_2.setEnabled(False)
+            self.BoxProgress.show()
+        def postupload():
+            self.BoxProgress.hide()
+            self.progressBar.setValue( 0 )
+            self._update_result()
+            self.WidgetsTree.actionUpload.setEnabled(True)
+            self.WidgetsTree.actionUpload_2.setEnabled(True)
+
+        upload_thread = UploadThread(self)
+
         count = self.upload_list.count()
         self.progressBar.setMaximum( count )
-        self.BoxProgress.show()
+        preupload()
+
         for i in xrange( count ):
             item = self.upload_list.item(i)
             data = item.data( QtCore.Qt.UserRole).toPyObject()
-            path = data.get( QtCore.QString('path') )
-            self.Uimge.upload( path)
-            while self.app.processEvents():
-                pass
-            print self.Uimge.img_url
-            self.result.append( ( self.Uimge.img_url,
-                    self.Uimge.img_thumb_url,
-                    self.Uimge.filename
-                    ) )
+            path = data.get( QString('path') )
+            upload_thread.setup( self.Uimge, path)
+            upload_thread.start()
+            while upload_thread.isRunning():
+                self.app.processEvents()
+            data['result']= upload_thread.result()
+            item.setData( QtCore.Qt.UserRole,QtCore.QVariant( data ) )
             self.progressBar.setValue( i )
+            if self.stop:
+                break
 
-        self.BoxProgress.hide()
-        self.progressBar.setValue( 0 )
-        self._update_result()
+        postupload()
+
 
     def _update_result(self, index_or_str=None):
         '''docstring for _update_result'''
@@ -332,14 +428,18 @@ class qUimge( QtGui.QMainWindow ):
             mp = self.WidgetsTree.ModePrint
             ci = mp.currentIndex()
             item_data = mp.itemData( ci )
-            if type( index_or_str ) == QtCore.QString:
+            if type( index_or_str ) == QString:
                 if mp.itemData(ci).isNull():
                     self.Outprint.set_rules( usr=str(index_or_str) )
                 else:
                     self.Outprint.set_rules( key=str( item_data.toString()) )
 
+        result_list =[self.upload_list.item( i)\
+                        .data(QtCore.Qt.UserRole)\
+                        .toPyObject()\
+                        .get( QString('result') )  for i in xrange(self.upload_list.count())]
 
-        _result = self.delimiter.join([ self.Outprint.get_out( r[0], r[1], r[2]) for r in self.result] )
+        _result = self.delimiter.join( [ self.Outprint.get_out( *r ) for r in result_list if r ]  )
         if _result:
             self.WidgetsTree.ResultText.setPlainText( _result)
             self._copy_to_clipboard()
@@ -350,11 +450,16 @@ class qUimge( QtGui.QMainWindow ):
     def _set_delim(self, delim):
         self.delimiter = str(self.WidgetsTree.Delimiter.currentText()).replace("\\n",'\n')
         self._update_result()
+
     def _copy_to_clipboard(self):
         '''docstring for copy_to_clipboard'''
         self.clipboard.clear()
         text = self.WidgetsTree.ResultText.toPlainText()
         self.clipboard.setText( text)
+    def _stop_process(self, flag=True):
+        '''docstring for _stop_process'''
+        self.stop = flag
+        pass
 
     def _test(self):
         def StandardIcon():
@@ -364,7 +469,11 @@ class qUimge( QtGui.QMainWindow ):
                     icon.actualSize( QtCore.QSize( 50,50) )
                     item = QtGui.QListWidgetItem( icon, d , self.upload_list)
                     item.setSizeHint( QtCore.QSize( 100+23,100+46) )
-        StandardIcon()
+        t = UploadThread(self)
+        t.setup( "Nyaaaa")
+        print t.run()
+        #StandardIcon()
+
 
 
 def human(num, prefix=" ", suffix='b'):

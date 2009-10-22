@@ -150,6 +150,23 @@
              </property>
             </widget>
            </item>
+           <item>
+            <widget class="QPushButton" name="StopButton">
+             <property name="toolTip">
+              <string>Stop</string>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normaloff>:/app/gtk-cancel.png</normaloff>:/app/gtk-cancel.png</iconset>
+             </property>
+             <property name="flat">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
         </item>
@@ -469,6 +486,9 @@
    </property>
   </action>
   <action name="actionPreferences">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
    <property name="enabled">
     <bool>false</bool>
    </property>
