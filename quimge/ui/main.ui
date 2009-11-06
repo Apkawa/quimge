@@ -101,7 +101,7 @@
              <string notr="true"/>
             </property>
             <property name="text">
-             <string/>
+             <string notr="true"/>
             </property>
             <property name="icon">
              <iconset>
@@ -121,7 +121,7 @@
              <string>Clear</string>
             </property>
             <property name="text">
-             <string/>
+             <string notr="true"/>
             </property>
             <property name="icon">
              <iconset>
@@ -231,6 +231,13 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="toolTip">
+             <string>Select or type mode out.
+#url# - original image
+#tmb# - preview image
+#file# - filename
+Sample: &quot;[URL=#url#][IMG]#tmb#[/IMG][/URL]&quot;</string>
+            </property>
             <property name="editable">
              <bool>true</bool>
             </property>
@@ -246,6 +253,9 @@
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
+            </property>
+            <property name="toolTip">
+             <string>Type delimiter</string>
             </property>
             <property name="editable">
              <bool>true</bool>
@@ -464,15 +474,23 @@
      <normaloff>:/app/document-open.png</normaloff>:/app/document-open.png</iconset>
    </property>
    <property name="text">
-    <string>Load images</string>
+    <string>Open images</string>
    </property>
   </action>
   <action name="actionLoad_images_from_folder">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/app/document-open.png</normaloff>:/app/document-open.png</iconset>
+   </property>
    <property name="text">
-    <string>Load images from folder</string>
+    <string>Open images from folder</string>
    </property>
   </action>
   <action name="actionUpload_2">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/app/gtk-go-up.png</normaloff>:/app/gtk-go-up.png</iconset>
+   </property>
    <property name="text">
     <string>Upload</string>
    </property>
@@ -492,11 +510,19 @@
    <property name="enabled">
     <bool>false</bool>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/app/gnome-settings.png</normaloff>:/app/gnome-settings.png</iconset>
+   </property>
    <property name="text">
     <string>Preferences</string>
    </property>
   </action>
   <action name="actionAbout">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/app/help-about.png</normaloff>:/app/help-about.png</iconset>
+   </property>
    <property name="text">
     <string>About</string>
    </property>

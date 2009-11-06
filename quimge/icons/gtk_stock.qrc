@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="app" >
+    <file>text-html.png</file>
     <file>guimge.png</file>
     <file>format-justify-fill.png</file>
     <file>exit.png</file>
@@ -10,5 +11,7 @@
     <file>gtk-go-up.png</file>
     <file>gtk-cancel.png</file>
     <file>gnome-settings.png</file>
+    <file>help-about.png</file>
+    <file>help-contents.png</file>
   </qresource>
 </RCC>

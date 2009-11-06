@@ -23,6 +23,7 @@
 #You can contact author by email <my email>
 ###
 from PyQt4 import QtCore, QtGui
+from PyQt4.QtGui import QPixmap,QIcon
 from PyQt4.QtCore import QString, QDir, QFileInfo
 DEBUG = True
 if DEBUG:
@@ -38,11 +39,14 @@ else:
 from icons import gtk_stock_rc
 import sys, os
 
-import uimge
+from uimge import uimge
 
 APPNAME = 'quimge'
 ORGNAME = 'Apkawa Inc'
 VERSION = '0.0.2'
+
+
+
 
 def About(parent=None):
     about_dialog = Ui_qUimge_about()
@@ -128,6 +132,23 @@ class qUimge( QtGui.QMainWindow ):
         self.Setting.endGroup()
 
         self.app = QtGui.QApplication(sys.argv)
+
+        #set multilangimport locale
+        import locale
+        LANG = locale.getlocale()[0]
+        print LANG
+        if LANG:
+            LANG = LANG.split('_')[0]
+        else:
+            LANG = 'en'
+        translator = QtCore.QTranslator(self.app)
+        translator.load(
+                'quimge_%s.qm'%LANG,
+                '/home/apkawa/Code/uimge/quimge/quimge/locale'
+                ) #FIXME
+        self.app.installTranslator(translator)
+
+
         QtGui.QWidget.__init__(self, parent)
         self.app.setStyle( _style)
         self.WidgetsTree = Ui_qUimge_main()
@@ -214,6 +235,7 @@ class qUimge( QtGui.QMainWindow ):
     def _initSelectHost(self):
         def get_favicon( host, ico_path):
             #TODO переписать на Qt
+            fail_pixmap = QPixmap(':/app/text-html.png')
             if not os.path.exists(ico_path):
                 import urllib
                 u = urllib.urlopen('http://favicon.yandex.net/favicon/%s'%host).read()
@@ -221,20 +243,17 @@ class qUimge( QtGui.QMainWindow ):
                 tmp = open( '/tmp/tmp.png','w+b')
                 tmp.write( u )
                 tmp.close()
-                tmp_ico = QtGtk.QPixmap("/tmp/tmp.png")
-                if tmp_ico.width() == 1:
-                    _ico = fail_icon
-                    fail_icon.save( ico_path, "png" )
-                else:
-                    _ico = tmp_ico.scale_simple( 16,16, gtk.gdk.INTERP_HYPER)
-                    tmp_ico.save( ico_path,"png" )
-            else:
-                _ico = QtGui.QPixmap( ico_path )
+                pixmap = QPixmap("/tmp/tmp.png")
+                if pixmap.size() == QtCore.QSize(1, 1):
+                    print pixmap.size()
+                    pixmap = fail_pixmap
+                tmp_ico = QIcon( pixmap )
+                pixmap.save( QString( ico_path) )
 
-            return _ico
+
+            return tmp_ico
 
         "Устанавливаем выпадающий список выбора хостингов c иконостасом"
-        fail_icon = QtGui.QIcon( QtGui.QPixmap(':/app/guimge.py') )
 
         ico_dir = os.path.join( 'icons', 'hosts')
         selhost  = self.WidgetsTree.SelectHost
@@ -243,8 +262,11 @@ class qUimge( QtGui.QMainWindow ):
         for host in _h:
             ico_name = host+'.png'
             ico_path = os.path.join( ico_dir,ico_name)
-            ico = QtGui.QIcon( QtGui.QPixmap( ico_path ) )
-            selhost.addItem( ico, host, _hosts.get( host) )
+            ico = QIcon( QPixmap( ico_path ) )
+            if ico.isNull():
+                ico = get_favicon( host, ico_path)
+
+            selhost.addItem( ico," %s"%host, _hosts.get( host) )
         selhost.setCurrentIndex( _h.index( self.default_host ))
 
     def _add_file(self, fileinfo):
@@ -253,7 +275,7 @@ class qUimge( QtGui.QMainWindow ):
         max_length_filename = thumb_size/9
 
         path = fileinfo.filePath()
-        px = QtGui.QPixmap( path )
+        px = QPixmap( path )
         if px.size().isNull():
             return
         filename = fileinfo.fileName()
@@ -271,7 +293,7 @@ class qUimge( QtGui.QMainWindow ):
 
         text_item ="%(name)s \n [%(size)s]"%{'size': size_str, 'name':filename }
 
-        icon = QtGui.QIcon()
+        icon = QIcon()
         icon.addPixmap( px.scaledToHeight( thumb_size )  )
         data = {'path': path ,'size': size, 'human_size': size_str, 'fileinfo':fileinfo }
         item = QtGui.QListWidgetItem( icon, text_item, self.upload_list )
@@ -293,6 +315,8 @@ class qUimge( QtGui.QMainWindow ):
 
         current_file_count = 0
         files_count = len(file_list)
+
+        self.WidgetsTree.tabWidget.setCurrentIndex(0)
 
         self._stop_process(False)
         self.BoxProgress.show()
@@ -325,20 +349,20 @@ class qUimge( QtGui.QMainWindow ):
                 selected += 1
                 selected_size += size
         if selected:
-            status_str = "Selected %s images (%s)"%( selected, human( selected_size) )
+            status_str = unicode(self.tr( "Selected %s images (%s)" ))%( selected, human( selected_size) )
         else:
-            status_str = "%s images (%s)"%( all_files, human( all_size) )
+            status_str = unicode(self.tr("%s images (%s)"))%( all_files, human( all_size) )
 
         self.WidgetsTree.statusBar.showMessage( status_str )
 
-    def __open_file(self):#
+    def __open_file(self):#DELETEME
         '''docstring for _open_file
         Вызывается чисто Qt диалог без предпросмотра.
         '''
         _args = ( self,
-                  "select images",
+                  "Select images",
                   self.lastdir,
-                  "images (*%s)" % ' *'.join([ i for i in self.image_type])
+                  "Images (*%s)" % ' *'.join([ i for i in self.image_type])
                   )
         dialog = QtGui.QFileDialog( *_args )
         dialog.setFileMode( QtGui.QFileDialog.AnyFile)
@@ -353,9 +377,9 @@ class qUimge( QtGui.QMainWindow ):
     def _open_file(self):
         '''docstring for _open_file'''
         _args = ( self,
-                  "select images",
+                  self.tr("Select images"),
                   self.lastdir,
-                  "images (*%s)" % ' *'.join([ i for i in self.image_type])
+                  unicode(self.tr("Images (*%s)")) % ' *'.join([ i for i in self.image_type])
                   )
         filenames = QtGui.QFileDialog( ).getOpenFileNames( *_args )
         if filenames:
@@ -365,7 +389,7 @@ class qUimge( QtGui.QMainWindow ):
     def _open_folder(self):
         '''docstring for _open_folder'''
         dialog = QtGui.QFileDialog( )
-        filename = dialog.getExistingDirectory( self,"select folder", self.lastdir )
+        filename = dialog.getExistingDirectory( self, self.tr("Select folder"), self.lastdir )
         if filename:
             self.lastdir = QtCore.QFileInfo( filename ).absoluteFilePath()
             self._add_files( [filename])
@@ -398,6 +422,7 @@ class qUimge( QtGui.QMainWindow ):
             self._update_result()
             self.WidgetsTree.actionUpload.setEnabled(True)
             self.WidgetsTree.actionUpload_2.setEnabled(True)
+            self.WidgetsTree.tabWidget.setCurrentIndex(1)
 
         upload_thread = UploadThread(self)
 
@@ -408,7 +433,7 @@ class qUimge( QtGui.QMainWindow ):
         for i in xrange( count ):
             item = self.upload_list.item(i)
             data = item.data( QtCore.Qt.UserRole).toPyObject()
-            path = data.get( QString('path') )
+            path = unicode( data.get( QString('path') ), 'utf8' )
             upload_thread.setup( self.Uimge, path)
             upload_thread.start()
             while upload_thread.isRunning():
@@ -456,6 +481,7 @@ class qUimge( QtGui.QMainWindow ):
         self.clipboard.clear()
         text = self.WidgetsTree.ResultText.toPlainText()
         self.clipboard.setText( text)
+
     def _stop_process(self, flag=True):
         '''docstring for _stop_process'''
         self.stop = flag
