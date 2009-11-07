@@ -23,7 +23,7 @@ data_files = []
 for dp, dn, fs in os.walk( os.path.join( name, "icons")):
     temp=[]
     for f in fs:
-        if f.startswith('.png'):
+        if f.endswith('.png'):
             temp.append( os.path.join( dp,f ) )
     data_files.append( ( os.path.join( prefix, dp), temp, ) )
 

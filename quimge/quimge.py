@@ -52,7 +52,9 @@ def module_path():
             unicode(sys.executable, sys.getfilesystemencoding( ))
         )
     return os.path.dirname(unicode(__file__, sys.getfilesystemencoding( )))
-SCRIPT_PATH = module_path()
+SCRIPT_DIR = os.path.abspath(module_path())
+print SCRIPT_DIR
+
 
 def About(parent=None):
     about_dialog = Ui_qUimge_about()
@@ -260,13 +262,18 @@ class qUimge( QtGui.QMainWindow ):
 
         "Устанавливаем выпадающий список выбора хостингов c иконостасом"
 
-        ico_dir = os.path.join(  SCRIPT_PATH ,'icons', 'hosts')
+        ico_path = os.path.join(  SCRIPT_DIR ,'icons')
+        if os.path.exists( ico_path):
+            ico_host_dir = os.path.join( ico_path,'hosts' )
+        else:
+            ico_host_dir = os.path.join( os.sys.prefix, 'share', 'quimge', 'icons','hosts')
+
         selhost  = self.WidgetsTree.SelectHost
         _hosts = dict([(v.host,QtCore.QVariant( v ) ) for k,v in uimge.Hosts.hosts_dict.items()])
         _h = sorted(_hosts.keys() )
         for host in _h:
             ico_name = host+'.png'
-            ico_path = os.path.join( ico_dir,ico_name)
+            ico_path = os.path.join( ico_host_dir,ico_name)
             ico = QIcon( QPixmap( ico_path ) )
             if ico.isNull():
                 ico = get_favicon( host, ico_path)
