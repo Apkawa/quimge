@@ -34,7 +34,7 @@ if DEBUG:
 else:
     from ui.main import Ui_qUimge_main
     from ui.about import Ui_qUimge_about
-    from ui.about import Ui_qUimge_setting
+    from ui.setting import Ui_qUimge_setting
 
 
 from icons import gtk_stock_rc
