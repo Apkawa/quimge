@@ -25,7 +25,7 @@
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QPixmap,QIcon
 from PyQt4.QtCore import QString, QDir, QFileInfo
-DEBUG = True
+DEBUG = False
 if DEBUG:
     from PyQt4 import uic
     Ui_qUimge_main = uic.loadUiType("ui/main.ui")[0]
