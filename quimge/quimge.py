@@ -34,7 +34,7 @@ if DEBUG:
 else:
     from ui.main import Ui_qUimge_main
     from ui.about import Ui_qUimge_about
-    from ui.setting import Ui_qUimge_setting
+    from ui.setting import Ui_Dialog as Ui_qUimge_setting
 
 
 from icons import gtk_stock_rc
@@ -143,6 +143,7 @@ class qUimge( QtGui.QMainWindow ):
         else:
             LANG = 'en'
         translator = QtCore.QTranslator(self.app)
+
         translator.load(
                 'quimge_%s.qm'%LANG,
                 '/home/apkawa/Code/uimge/quimge/quimge/locale'
