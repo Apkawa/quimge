@@ -1,0 +1,11 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Categories=Network;
+Terminal=false
+Name=quimge - Qt GUI for uimge - picture uploader to imagehostings
+Name[ru]=quimge - Qt GUI для uimge -  загрузчик изображений на хостинги изображений
+Comment=Python picture uploader to different imagehostings
+Exec=quimge
+Icon=/usr/share/guimge/icons/quimge.png
