@@ -262,11 +262,9 @@ class qUimge( QtGui.QMainWindow ):
 
         "Устанавливаем выпадающий список выбора хостингов c иконостасом"
 
-        ico_path = os.path.join(  SCRIPT_DIR ,'icons')
-        if os.path.exists( ico_path):
-            ico_host_dir = os.path.join( ico_path,'hosts' )
-        else:
-            ico_host_dir = os.path.join( os.sys.prefix, 'share', 'quimge', 'icons','hosts')
+        ico_host_dir = os.path.join(  SCRIPT_DIR ,'icons','hosts')
+        if not os.path.exists( ico_path):
+            ico_host_dir = os.path.join( os.sys.prefix, 'share','quimge','icons','hosts')
 
         selhost  = self.WidgetsTree.SelectHost
         _hosts = dict([(v.host,QtCore.QVariant( v ) ) for k,v in uimge.Hosts.hosts_dict.items()])
