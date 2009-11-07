@@ -40,7 +40,7 @@ compileUiDir( os.path.join(name,'ui') )
 compile_qrc( os.path.join( name, 'icons','gtk_stock.qrc' ),os.path.join( name, 'icons','gtk_stock_rc.py' ) )
 
 
-from quimge import quimge
+import quimge
 
 setup(name='quimge',
       version = quimge.VERSION,
