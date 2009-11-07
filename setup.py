@@ -54,7 +54,7 @@ setup(name='quimge',
       data_files=data_files,
       entry_points = {
         'console_scripts':[
-            'guimge = guimge:main'
+            'quimge = quimge:main'
         ]
         }
      )
