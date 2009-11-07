@@ -46,8 +46,13 @@ APPNAME = 'quimge'
 ORGNAME = 'Apkawa Inc'
 VERSION = '0.0.2'
 
-
-
+def module_path():
+    if hasattr(sys, "frozen"):
+        return os.path.dirname(
+            unicode(sys.executable, sys.getfilesystemencoding( ))
+        )
+    return os.path.dirname(unicode(__file__, sys.getfilesystemencoding( )))
+SCRIPT_PATH = module_path()
 
 def About(parent=None):
     about_dialog = Ui_qUimge_about()
@@ -247,17 +252,15 @@ class qUimge( QtGui.QMainWindow ):
                 tmp.close()
                 pixmap = QPixmap("/tmp/tmp.png")
                 if pixmap.size() == QtCore.QSize(1, 1):
-                    print pixmap.size()
                     pixmap = fail_pixmap
                 tmp_ico = QIcon( pixmap )
                 pixmap.save( QString( ico_path) )
-
 
             return tmp_ico
 
         "Устанавливаем выпадающий список выбора хостингов c иконостасом"
 
-        ico_dir = os.path.join( 'icons', 'hosts')
+        ico_dir = os.path.join(  SCRIPT_PATH ,'icons', 'hosts')
         selhost  = self.WidgetsTree.SelectHost
         _hosts = dict([(v.host,QtCore.QVariant( v ) ) for k,v in uimge.Hosts.hosts_dict.items()])
         _h = sorted(_hosts.keys() )
