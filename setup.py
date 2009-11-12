@@ -34,7 +34,6 @@ data_files.append(
 data_files.append(
         ( "/usr/share/applications/",
           [os.path.join( name, "quimge.desktop") ] ) )
-print data_files
 
 compileUiDir( os.path.join(name,'ui') )
 compile_qrc( os.path.join( name, 'icons','gtk_stock.qrc' ),os.path.join( name, 'icons','gtk_stock_rc.py' ) )
