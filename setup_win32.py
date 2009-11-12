@@ -1,6 +1,18 @@
 from distutils.core import setup
 import py2exe
 import glob
+import os
+
+from PyQt4.uic import compileUi
+def compileUiDir( path):
+    for f in os.listdir( path):
+        if f.endswith('.ui'):
+            compileUi( os.path.join(path,f ),
+                    open(os.path.join(path,f[:-3] )+'.py','w') )
+
+
+
+#compileUiDir( os.path.join( 'quimge','ui') )
 
 setup(
     name = 'quimge',
@@ -25,7 +37,7 @@ setup(
 
     data_files=[
                     ('icons',glob.glob('quimge/icons/*.*'), ),
-                    ('ui',glob.glob('quimge/ui/*.*'), ),
+                    #('ui',glob.glob('quimge/ui/*.*'), ),
                     ('icons/hosts',glob.glob('quimge/icons/hosts/*.png'),),
                     ('imageformats', glob.glob('C:\Python25\Lib\site-packages\PyQt4\plugins\imageformats\*.*')),
                    #('ui',['quimge/ui/main.ui']),   
