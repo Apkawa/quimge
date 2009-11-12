@@ -22,9 +22,12 @@
 #
 #You can contact author by email <my email>
 ###
+import os
+import sys
+
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QPixmap,QIcon
-from PyQt4.QtCore import QString, QDir, QFileInfo
+from PyQt4.QtCore import QString, QDir, QFileInfo, QVariant
 DEBUG = False
 if DEBUG:
     from PyQt4 import uic
@@ -32,19 +35,24 @@ if DEBUG:
     Ui_qUimge_about = uic.loadUiType("ui/about.ui")[0]
     Ui_qUimge_setting = uic.loadUiType("ui/setting.ui")[0]
 else:
-    from ui.main import Ui_qUimge_main
-    from ui.about import Ui_qUimge_about
-    from ui.setting import Ui_Dialog as Ui_qUimge_setting
+    if sys.platform != 'win32':
+        from ui.main import Ui_qUimge_main
+        from ui.about import Ui_qUimge_about
+        from ui.setting import Ui_Dialog as Ui_qUimge_setting
+    else:
+        from quimge.ui.main import Ui_qUimge_main
+        from quimge.ui.about import Ui_qUimge_about
+        from quimge.ui.setting import Ui_Dialog as Ui_qUimge_setting
+
 
 
 from icons import gtk_stock_rc
-import sys, os
 
 from uimge import uimge
 
 APPNAME = 'quimge'
 ORGNAME = 'Apkawa Inc'
-VERSION = '0.0.2'
+VERSION = '0.0.3'
 
 def module_path():
     if hasattr(sys, "frozen"):
@@ -132,11 +140,15 @@ class qUimge( QtGui.QMainWindow ):
     image_type = ('.png', '.jpe', '.jpg', '.jpeg', '.gif', '.bmp')
     def __init__(self, parent=None):
         '''docstring for __init__'''
-        self.Setting = QtCore.QSettings(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, ORGNAME, APPNAME )
+        self.Setting = QtCore.QSettings(
+                QtCore.QSettings.IniFormat,
+                QtCore.QSettings.UserScope,
+                ORGNAME,
+                APPNAME )
         self.Setting.beginGroup('General')
-        self.lastdir = self.Setting.value('lastdir', QtCore.QDir().homePath() ).toString()
-        self.default_host = self.Setting.value('default_host','radikal.ru').toString()
-        _style = self.Setting.value('style','qtcurve').toString()
+        self.lastdir = self.Setting.value('lastdir', QVariant(QtCore.QDir().homePath() ) ).toString()
+        self.default_host = self.Setting.value('default_host', QVariant('radikal.ru') ).toString()
+        _style = self.Setting.value('style',QVariant('qtcurve')).toString()
         self.Setting.endGroup()
 
         self.app = QtGui.QApplication(sys.argv)
@@ -162,6 +174,7 @@ class qUimge( QtGui.QMainWindow ):
         self.app.setStyle( _style)
         self.WidgetsTree = Ui_qUimge_main()
         self.WidgetsTree.setupUi( self )
+        self.setWindowTitle('quimge %s'%VERSION)
 
         self.event_loop = QtCore.QEventLoop()
 
@@ -290,6 +303,7 @@ class qUimge( QtGui.QMainWindow ):
             return
         filename = fileinfo.fileName()
         size = fileinfo.size()
+        print size
         size_str = human( size )
 
         if len(filename) > max_length_filename:
@@ -353,7 +367,7 @@ class qUimge( QtGui.QMainWindow ):
         for i in xrange(all_files):
             item = self.upload_list.item(i)
             data = item.data( QtCore.Qt.UserRole).toPyObject()
-            size = data.get( QString('size') )
+            size = data.get( 'size' )
             all_size += size
             if item.isSelected():
                 selected += 1
@@ -443,7 +457,7 @@ class qUimge( QtGui.QMainWindow ):
         for i in xrange( count ):
             item = self.upload_list.item(i)
             data = item.data( QtCore.Qt.UserRole).toPyObject()
-            path = unicode( data.get( QString('path') ), 'utf8' )
+            path = unicode( data.get( 'path' ), 'utf8' )
             upload_thread.setup( self.Uimge, path)
             upload_thread.start()
             while upload_thread.isRunning():
@@ -472,7 +486,7 @@ class qUimge( QtGui.QMainWindow ):
         result_list =[self.upload_list.item( i)\
                         .data(QtCore.Qt.UserRole)\
                         .toPyObject()\
-                        .get( QString('result') )  for i in xrange(self.upload_list.count())]
+                        .get( 'result' )  for i in xrange(self.upload_list.count())]
 
         _result = self.delimiter.join( [ self.Outprint.get_out( *r ) for r in result_list if r ]  )
         if _result:
