@@ -508,7 +508,7 @@ Sample: &quot;[URL=#url#][IMG]#tmb#[/IMG][/URL]&quot;</string>
     <bool>false</bool>
    </property>
    <property name="enabled">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
    <property name="icon">
     <iconset>

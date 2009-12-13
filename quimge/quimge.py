@@ -24,11 +24,12 @@
 ###
 import os
 import sys
+import copy
 
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QPixmap,QIcon
 from PyQt4.QtCore import QString, QDir, QFileInfo, QVariant
-DEBUG = False
+DEBUG = True
 if DEBUG:
     from PyQt4 import uic
     Ui_qUimge_main = uic.loadUiType("ui/main.ui")[0]
@@ -49,6 +50,10 @@ else:
 from icons import gtk_stock_rc
 
 from uimge import uimge
+HOSTS = dict(
+            [ (v.host, QtCore.QVariant( v ) )
+                for k,v in uimge.Hosts.hosts_dict.items()]
+            )
 
 APPNAME = 'quimge'
 ORGNAME = 'Apkawa Inc'
@@ -63,6 +68,86 @@ def module_path():
 SCRIPT_DIR = os.path.abspath(module_path())
 print SCRIPT_DIR
 
+def make_hosts_combobox(combobox=None, default_host=None):
+    def get_favicon( host, ico_path):
+        fail_pixmap = QPixmap(':/app/text-html.png')
+        if not os.path.exists(ico_path):
+            import urllib
+            u = urllib.urlopen('http://favicon.yandex.net/favicon/%s'%host).read()
+            #http://www.google.com/s2/favicons?domain=www.labnol.org
+            tmp = open( '/tmp/tmp.png','w+b')
+            tmp.write( u )
+            tmp.close()
+            pixmap = QPixmap("/tmp/tmp.png")
+            if pixmap.size() == QtCore.QSize(1, 1):
+                pixmap = fail_pixmap
+            tmp_ico = QIcon( pixmap )
+            pixmap.save( QString( ico_path) )
+
+        return tmp_ico
+
+    "Устанавливаем выпадающий список выбора хостингов c иконостасом"
+
+    ico_host_dir = os.path.join(  SCRIPT_DIR ,'icons','hosts')
+    if not os.path.exists( ico_host_dir):
+        ico_host_dir = os.path.join(
+                os.sys.prefix,
+                'share',
+                'quimge',
+                'icons',
+                'hosts')
+    if combobox:
+        selhost  = combobox
+    else:
+        selhost  = QtGui.QComboBox()
+    for host, obj in HOSTS.items():
+        ico_name = host+'.png'
+        ico_path = os.path.join( ico_host_dir,ico_name)
+        ico = QIcon( QPixmap( ico_path ) )
+        if ico.isNull():
+            ico = get_favicon( host, ico_path)
+        selhost.addItem( ico, " %s"%host, [host, obj] )
+    if default_host:
+        selhost.setCurrentIndex( HOSTS.keys().index( default_host ))
+    return selhost
+
+class Setting:
+    def __init__(self, parent=None):
+        '''docstring for __init__'''
+        if not parent:
+            self.setting = QtCore.QSettings(
+                    #QtCore.QSettings.IniFormat,
+                        QtCore.QSettings.NativeFormat,
+                        QtCore.QSettings.UserScope,
+                        APPNAME,
+                        APPNAME,
+                    )
+        else:
+            self.setting = parent
+
+    def begin_group(self, groupname):
+        self.setting.beginGroup( groupname )
+
+    def end_group(self):
+        self.setting.endGroup()
+
+    def set(self, key, val):
+        '''docstring for set'''
+        self.setting.setValue( key, QVariant( val ) )
+
+    def get(self, key, default=''):
+        '''docstring for get'''
+        _res = self.setting.value( key )
+        if _res.isNull():
+            default = QString(default)
+            self.set(key, default )
+            return default
+        else:
+            return _res.toString()
+
+    def save(self):
+        print self.setting.fileName()
+        self.setting.sync()
 
 def About(parent=None):
     about_dialog = Ui_qUimge_about()
@@ -71,28 +156,34 @@ def About(parent=None):
     return dialog
 
 class qUimge_setting_dialog( object):
-    def __init__(self, _QSetting, parent=None):
+    def __init__(self, _Setting, parent=None):
         '''docstring for __init__'''
         self.setting_dialog = Ui_qUimge_setting()
         self.dialog = QtGui.QDialog( parent )
         self.setting_dialog.setupUi( self.dialog )
-        self.QSetting = _QSetting
+        self.Setting = _Setting
+        self.set_signals()
 
         self.setting_dialog.list_styles.addItems( QtGui.QStyleFactory.keys() )
+        self.select_default_host = self.setting_dialog.select_default_host
+        make_hosts_combobox( self.select_default_host, self.Setting.get('default_host'))
 
-        default_host_lauout = self.setting_dialog.default_host.layout()
-        default_host = QtGui.QComboBox(parent.WidgetsTree.SelectHost)
-        default_host_lauout.addWidget(default_host)
     def set_signals(self):
         connect = self.dialog.connect
         SIGNAL = QtCore.SIGNAL
         SLOT = QtCore.SLOT
-        connect( self.setting_dialog.list_styles, SIGNAL("currentIndexChanged(QString)", self._set_style) )
+        connect( self.setting_dialog.list_styles,
+                SIGNAL("currentIndexChanged(QString)"), self._set_style )
+        connect( self.setting_dialog.buttonBox, SIGNAL("accepted()"), self.accept)
         pass
     def exec_(self):
         self.dialog.exec_()
     def _set_style(self, string):
+        print "nya"
         self.dialog.setStyle(string)
+    def accept(self):
+        print "Nya!"
+        self.dialog.accept()
 
 class UploadThread( QtCore.QThread):
     def __init__(self, parent=None):
@@ -114,24 +205,6 @@ class UploadThread( QtCore.QThread):
                     self.Uimge.filename
                     )
 
-
-
-class Setting:
-    def __init__(self):
-        '''docstring for __init__'''
-        self.setting = QtCore.QSettings(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, ORGNAME, APPNAME )
-        pass
-    def set(self, key, val):
-        '''docstring for set'''
-        self.setting.setValue( key, QtCore.QVariant( val ) )
-    def get(self, key, default=''):
-        '''docstring for get'''
-        _res = self.setting.value( key )
-        if _res.isNull():
-            return default
-        else:
-            return _res
-
 class qUimge( QtGui.QMainWindow ):
     Uimge = uimge.Uimge()
     Outprint = uimge.Outprint()
@@ -140,16 +213,30 @@ class qUimge( QtGui.QMainWindow ):
     image_type = ('.png', '.jpe', '.jpg', '.jpeg', '.gif', '.bmp')
     def __init__(self, parent=None):
         '''docstring for __init__'''
+        '''
         self.Setting = QtCore.QSettings(
                 QtCore.QSettings.IniFormat,
                 QtCore.QSettings.UserScope,
                 ORGNAME,
                 APPNAME )
         self.Setting.beginGroup('General')
-        self.lastdir = self.Setting.value('lastdir', QVariant(QtCore.QDir().homePath() ) ).toString()
-        self.default_host = self.Setting.value('default_host', QVariant('radikal.ru') ).toString()
-        _style = self.Setting.value('style',QVariant('qtcurve')).toString()
+        self.lastdir = self.Setting.value(
+                'lastdir',
+                QVariant(QtCore.QDir().homePath() ) ).toString()
+        self.default_host = self.Setting.value(
+                'default_host',
+                QVariant('radikal.ru') ).toString()
+        _style = self.Setting.value(
+                'style',
+                QVariant('qtcurve')).toString()
         self.Setting.endGroup()
+        '''
+        self.Setting = Setting()
+        #self.Setting.begin_group('General')
+        self.lastdir = self.Setting.get('lastdir', QtCore.QDir().homePath() )
+        self.default_host = self.Setting.get('default_host', 'radikal.ru')
+        _style = self.Setting.get('style', 'qtcurve')
+        #self.Setting.end_group()
 
         self.app = QtGui.QApplication(sys.argv)
 
@@ -195,9 +282,11 @@ class qUimge( QtGui.QMainWindow ):
         self._init_SIGNALS()
         self._initSelectHost()
 
-        self.WidgetsTree.ModePrint.addItem( "Direct url", QtCore.QVariant("Direct") )
+        self.WidgetsTree.ModePrint.addItem(
+                "Direct url", QtCore.QVariant("Direct") )
         for k, v in self.Outprint.outprint_rules.items():
-            self.WidgetsTree.ModePrint.addItem( v['desc'], QtCore.QVariant( k) )
+            self.WidgetsTree.ModePrint.addItem( v['desc'],
+                    QtCore.QVariant( k) )
         self.WidgetsTree.Delimiter.addItem(r"\n")
 
     def run(self, files=None):
@@ -206,8 +295,15 @@ class qUimge( QtGui.QMainWindow ):
         self._initFileListIcons(files)
         sys.exit( self.app.exec_() )
 
+    def update_setting(self):
+        self._set_current_host()
+        self.Setting.set('default_host', self.default_host)
+        self.Setting.set('lastdir', self.lastdir)
+        self.Setting.save()
+
     def exit(self):
         self.close()
+        self.update_setting()
         sys.exit()
 
     def eventFilter(self, obj, event):
@@ -228,23 +324,44 @@ class qUimge( QtGui.QMainWindow ):
         connect = self.connect
         SIGNAL = QtCore.SIGNAL
         SLOT = QtCore.SLOT
-        connect(self.WidgetsTree.action_Open, SIGNAL("activated()"), self._open_file)
-        connect(self.WidgetsTree.actionLoad_images, SIGNAL("activated()"), self._open_file)
-        connect(self.WidgetsTree.actionLoad_images_from_folder, SIGNAL("activated()"), self._open_folder)
-        connect(self.WidgetsTree.actionUpload, SIGNAL("activated()"), self._upload)
-        connect(self.WidgetsTree.actionUpload_2, SIGNAL("activated()"), self._upload)
-        connect(self.WidgetsTree.actionClipboard, SIGNAL("activated()"), self._copy_to_clipboard)
-        connect(self.WidgetsTree.actionAbout, SIGNAL("activated()"), self.about_dialog.exec_ )
-        connect(self.WidgetsTree.actionPreferences, SIGNAL("activated()"), self.setting_dialog.exec_ )
+        connect(self.WidgetsTree.action_Open,
+                SIGNAL("activated()"), self._open_file)
 
-        connect(self.WidgetsTree.StopButton, SIGNAL("clicked()"), self._stop_process )
-        connect(self.WidgetsTree.ModePrint, SIGNAL("textChanged(QString)"), self._update_result)
-        connect(self.WidgetsTree.Delimiter, SIGNAL("textChanged(QString)"), self._set_delim)
-        connect(self.WidgetsTree.DeleteSelected, SIGNAL("clicked()"), self._clear_selected)
+        connect(self.WidgetsTree.actionExit,
+                SIGNAL("activated()"), self.exit)
+        connect(self.WidgetsTree.actionExit_2,
+                SIGNAL("activated()"), self.exit)
 
-        connect( self.upload_list, SIGNAL("itemSelectionChanged()"), self._update_summary)
-        connect( self.WidgetsTree.ClearUploadList, SIGNAL("clicked()"), self._update_summary)
-        connect( self.WidgetsTree.DeleteSelected, SIGNAL("clicked()"), self._update_summary)
+        connect(self.WidgetsTree.actionLoad_images,
+                SIGNAL("activated()"), self._open_file)
+        connect(self.WidgetsTree.actionLoad_images_from_folder,
+                SIGNAL("activated()"), self._open_folder)
+        connect(self.WidgetsTree.actionUpload,
+                SIGNAL("activated()"), self._upload)
+        connect(self.WidgetsTree.actionUpload_2,
+                SIGNAL("activated()"), self._upload)
+        connect(self.WidgetsTree.actionClipboard,
+                SIGNAL("activated()"), self._copy_to_clipboard)
+        connect(self.WidgetsTree.actionAbout,
+                SIGNAL("activated()"), self.about_dialog.exec_ )
+        connect(self.WidgetsTree.actionPreferences,
+                SIGNAL("activated()"), self.setting_dialog.exec_ )
+
+        connect(self.WidgetsTree.StopButton,
+                SIGNAL("clicked()"), self._stop_process )
+        connect(self.WidgetsTree.ModePrint,
+                SIGNAL("textChanged(QString)"), self._update_result)
+        connect(self.WidgetsTree.Delimiter,
+                SIGNAL("textChanged(QString)"), self._set_delim)
+        connect(self.WidgetsTree.DeleteSelected,
+                SIGNAL("clicked()"), self._clear_selected)
+
+        connect( self.upload_list,
+                SIGNAL("itemSelectionChanged()"), self._update_summary)
+        connect( self.WidgetsTree.ClearUploadList,
+                SIGNAL("clicked()"), self._update_summary)
+        connect( self.WidgetsTree.DeleteSelected,
+                SIGNAL("clicked()"), self._update_summary)
 
     def _initFileListIcons(self, filenames=None):
         '''
@@ -277,10 +394,18 @@ class qUimge( QtGui.QMainWindow ):
 
         ico_host_dir = os.path.join(  SCRIPT_DIR ,'icons','hosts')
         if not os.path.exists( ico_host_dir):
-            ico_host_dir = os.path.join( os.sys.prefix, 'share','quimge','icons','hosts')
+            ico_host_dir = os.path.join(
+                    os.sys.prefix,
+                    'share',
+                    'quimge',
+                    'icons',
+                    'hosts')
 
         selhost  = self.WidgetsTree.SelectHost
-        _hosts = dict([(v.host,QtCore.QVariant( v ) ) for k,v in uimge.Hosts.hosts_dict.items()])
+        _hosts = dict(
+                [(v.host,QtCore.QVariant( v ) )
+                    for k,v in uimge.Hosts.hosts_dict.items()]
+                )
         _h = sorted(_hosts.keys() )
         for host in _h:
             ico_name = host+'.png'
@@ -289,7 +414,7 @@ class qUimge( QtGui.QMainWindow ):
             if ico.isNull():
                 ico = get_favicon( host, ico_path)
 
-            selhost.addItem( ico," %s"%host, _hosts.get( host) )
+            selhost.addItem( ico, " %s"%host, _hosts.get( host) )
         selhost.setCurrentIndex( _h.index( self.default_host ))
 
     def _add_file(self, fileinfo):
@@ -308,7 +433,8 @@ class qUimge( QtGui.QMainWindow ):
 
         if len(filename) > max_length_filename:
             filename = '%s...%s'%(
-                    filename[0:max_length_filename/2 ],filename[-max_length_filename/2:],
+                    filename[0:max_length_filename/2 ],
+                    filename[-max_length_filename/2:],
                     )
         else:
             filename = '%s'%(
@@ -319,7 +445,12 @@ class qUimge( QtGui.QMainWindow ):
 
         icon = QIcon()
         icon.addPixmap( px.scaledToHeight( thumb_size )  )
-        data = {'path': path ,'size': size, 'human_size': size_str, 'fileinfo':fileinfo }
+        data = {
+                QString('path'): path ,
+                QString('size'): size,
+                QString('human_size'): size_str,
+                QString('fileinfo'):fileinfo,
+                }
         item = QtGui.QListWidgetItem( icon, text_item, self.upload_list )
         item.setData( QtCore.Qt.UserRole,QtCore.QVariant( data ) )
         item.setToolTip( path)
@@ -367,15 +498,18 @@ class qUimge( QtGui.QMainWindow ):
         for i in xrange(all_files):
             item = self.upload_list.item(i)
             data = item.data( QtCore.Qt.UserRole).toPyObject()
-            size = data.get( 'size' )
+            size = data.get( QString('size') )
             all_size += size
             if item.isSelected():
                 selected += 1
                 selected_size += size
         if selected:
-            status_str = unicode(self.tr( "Selected %s images (%s)" ))%( selected, human( selected_size) )
+            status_str = unicode(
+                        self.tr("Selected %s images (%s)" )
+                    )%( selected, human( selected_size))
         else:
-            status_str = unicode(self.tr("%s images (%s)"))%( all_files, human( all_size) )
+            status_str = unicode(
+                    self.tr("%s images (%s)"))%( all_files, human( all_size) )
 
         self.WidgetsTree.statusBar.showMessage( status_str )
 
@@ -403,7 +537,10 @@ class qUimge( QtGui.QMainWindow ):
         _args = ( self,
                   self.tr("Select images"),
                   self.lastdir,
-                  unicode(self.tr("Images (*%s)")) % ' *'.join([ i for i in self.image_type])
+                  unicode(
+                      self.tr("Images (*%s)")) % ' *'.join(
+                          [ i for i in self.image_type]
+                          )
                   )
         filenames = QtGui.QFileDialog( ).getOpenFileNames( *_args )
         if filenames:
@@ -413,7 +550,9 @@ class qUimge( QtGui.QMainWindow ):
     def _open_folder(self):
         '''docstring for _open_folder'''
         dialog = QtGui.QFileDialog( )
-        filename = dialog.getExistingDirectory( self, self.tr("Select folder"), self.lastdir )
+        filename = dialog.getExistingDirectory(self,
+                self.tr("Select folder"),
+                self.lastdir )
         if filename:
             self.lastdir = QtCore.QFileInfo( filename ).absoluteFilePath()
             self._add_files( [filename])
@@ -430,7 +569,7 @@ class qUimge( QtGui.QMainWindow ):
     def _set_current_host( self):
         cur_h  = self.WidgetsTree.SelectHost.currentIndex()
         host_key = self.WidgetsTree.SelectHost.itemData(cur_h).toPyObject()
-        self.Uimge.set_host( host_key   )
+        self.Uimge.set_host( host_key )
 
     def _upload(self):
         '''docstring for _upload'''
@@ -457,12 +596,12 @@ class qUimge( QtGui.QMainWindow ):
         for i in xrange( count ):
             item = self.upload_list.item(i)
             data = item.data( QtCore.Qt.UserRole).toPyObject()
-            path = unicode( data.get( 'path' ), 'utf8' )
+            path = unicode( data.get( QString('path') ), 'utf8' )
             upload_thread.setup( self.Uimge, path)
             upload_thread.start()
             while upload_thread.isRunning():
                 self.app.processEvents()
-            data['result']= upload_thread.result()
+            data[QString('result')]= upload_thread.result()
             item.setData( QtCore.Qt.UserRole,QtCore.QVariant( data ) )
             self.progressBar.setValue( i )
             if self.stop:
@@ -486,9 +625,12 @@ class qUimge( QtGui.QMainWindow ):
         result_list =[self.upload_list.item( i)\
                         .data(QtCore.Qt.UserRole)\
                         .toPyObject()\
-                        .get( 'result' )  for i in xrange(self.upload_list.count())]
+                        .get( QString('result') )
+                        for i in xrange(self.upload_list.count())]
 
-        _result = self.delimiter.join( [ self.Outprint.get_out( *r ) for r in result_list if r ]  )
+        _result = self.delimiter.join(
+                [ self.Outprint.get_out( *r ) for r in result_list if r ]
+                )
         if _result:
             self.WidgetsTree.ResultText.setPlainText( _result)
             self._copy_to_clipboard()
@@ -523,8 +665,6 @@ class qUimge( QtGui.QMainWindow ):
         t.setup( "Nyaaaa")
         print t.run()
         #StandardIcon()
-
-
 
 def human(num, prefix=" ", suffix='b'):
     num=float(num)
