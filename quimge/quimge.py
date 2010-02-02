@@ -29,13 +29,9 @@ import copy
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QPixmap,QIcon
 from PyQt4.QtCore import QString, QDir, QFileInfo, QVariant
-DEBUG = True
-if DEBUG:
-    from PyQt4 import uic
-    Ui_qUimge_main = uic.loadUiType("ui/main.ui")[0]
-    Ui_qUimge_about = uic.loadUiType("ui/about.ui")[0]
-    Ui_qUimge_setting = uic.loadUiType("ui/setting.ui")[0]
-else:
+DEBUG = False
+
+def load_compiled_ui():
     if sys.platform != 'win32':
         from ui.main import Ui_qUimge_main
         from ui.about import Ui_qUimge_about
@@ -44,6 +40,17 @@ else:
         from quimge.ui.main import Ui_qUimge_main
         from quimge.ui.about import Ui_qUimge_about
         from quimge.ui.setting import Ui_Dialog as Ui_qUimge_setting
+def load_xml_ui():
+    from PyQt4 import uic
+    Ui_qUimge_main = uic.loadUiType("ui/main.ui")[0]
+    Ui_qUimge_about = uic.loadUiType("ui/about.ui")[0]
+    Ui_qUimge_setting = uic.loadUiType("ui/setting.ui")[0]
+
+if not DEBUG:
+    load_compiled_ui()
+else:
+    load_xml_ui()
+
 
 
 
