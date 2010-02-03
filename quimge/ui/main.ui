@@ -373,6 +373,8 @@ Sample: &quot;[URL=#url#][IMG]#tmb#[/IMG][/URL]&quot;</string>
    <addaction name="actionUpload"/>
    <addaction name="actionClipboard"/>
    <addaction name="separator"/>
+   <addaction name="actionPreferences_2"/>
+   <addaction name="separator"/>
    <addaction name="actionExit"/>
   </widget>
   <widget class="QMenuBar" name="menuBar">
@@ -531,6 +533,21 @@ Sample: &quot;[URL=#url#][IMG]#tmb#[/IMG][/URL]&quot;</string>
    </property>
    <property name="text">
     <string>About</string>
+   </property>
+  </action>
+  <action name="actionPreferences_2">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/app/gnome-settings.png</normaloff>:/app/gnome-settings.png</iconset>
+   </property>
+   <property name="text">
+    <string>Preferences</string>
    </property>
   </action>
  </widget>

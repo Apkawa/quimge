@@ -27,7 +27,6 @@ import sys
 import copy
 
 from PyQt4 import QtCore, QtGui
-from PyQt4 import Qt
 from PyQt4.QtGui import QPixmap,QIcon
 from PyQt4.QtCore import QString, QDir, QFileInfo, QVariant
 DEBUG = True
@@ -171,18 +170,34 @@ class qUimge_setting_dialog( object):
 
         self.style = self.Setting.get('style')
         self.default_host = self.Setting.get('default_host')
+        self.start_dir = self.Setting.get("startdir", QtCore.QDir().homePath())
 
         self.setting_dialog.list_styles.addItems( QtGui.QStyleFactory.keys() )
         self.setting_dialog.list_styles.setCurrentIndex( self.setting_dialog.list_styles.findText( self.style) )
         self.select_default_host = self.setting_dialog.select_default_host
         make_hosts_combobox( self.select_default_host, self.default_host )
 
+        self.setting_dialog.start_dir_edit.setText(self.start_dir)
+
+
+
     def set_signals(self):
         connect = self.dialog.connect
         SIGNAL = QtCore.SIGNAL
         SLOT = QtCore.SLOT
         connect( self.setting_dialog.buttonBox, SIGNAL("accepted()"), self.accept)
-        pass
+        connect( self.setting_dialog.select_start_dir, SIGNAL("clicked()"), self.open_folder)
+
+    def open_folder(self):
+        '''docstring for _open_folder'''
+        dialog = QtGui.QFileDialog( )
+        filename = dialog.getExistingDirectory(self.dialog,
+                "Select folder",
+                self.start_dir )
+        if filename:
+            start_dir = QtCore.QFileInfo( filename ).absoluteFilePath()
+            self.setting_dialog.start_dir_edit.setText(start_dir)
+
     def exec_(self):
         self.dialog.exec_()
     def accept(self):
@@ -190,6 +205,7 @@ class qUimge_setting_dialog( object):
         host, obj = self.select_default_host.itemData(cur_h).toPyObject()
         self.Setting.set("default_host", host)
         self.Setting.set("style", self.setting_dialog.list_styles.currentText())
+        self.Setting.set("startdir", self.setting_dialog.start_dir_edit.text())
         self.dialog.accept()
 
 class UploadThread( QtCore.QThread):
@@ -220,31 +236,6 @@ class qUimge( QtGui.QMainWindow ):
     image_type = ('.png', '.jpe', '.jpg', '.jpeg', '.gif', '.bmp')
     def __init__(self, parent=None):
         '''docstring for __init__'''
-        '''
-        self.Setting = QtCore.QSettings(
-                QtCore.QSettings.IniFormat,
-                QtCore.QSettings.UserScope,
-                ORGNAME,
-                APPNAME )
-        self.Setting.beginGroup('General')
-        self.lastdir = self.Setting.value(
-                'lastdir',
-                QVariant(QtCore.QDir().homePath() ) ).toString()
-        self.default_host = self.Setting.value(
-                'default_host',
-                QVariant('radikal.ru') ).toString()
-        _style = self.Setting.value(
-                'style',
-                QVariant('qtcurve')).toString()
-        self.Setting.endGroup()
-        '''
-        self.Setting = Setting()
-        #self.Setting.begin_group('General')
-        self.start_dir = self.Setting.get('startdir', QtCore.QDir().homePath() )
-        self.lastdir = self.Setting.get('lastdir', self.start_dir )
-        self.default_host = self.Setting.get('default_host', 'radikal.ru')
-        _style = self.Setting.get('style', 'qtcurve')
-        #self.Setting.end_group()
 
         self.app = QtGui.QApplication(sys.argv)
 
@@ -263,6 +254,17 @@ class qUimge( QtGui.QMainWindow ):
                 '/home/apkawa/Code/uimge/quimge/quimge/locale'
                 ) #FIXME
         self.app.installTranslator(translator)
+
+        #Load setting
+        self.Setting = Setting()
+        self.start_dir = self.Setting.get('startdir', None )
+        if not self.start_dir:
+            self.lastdir = self.Setting.get('lastdir', self.start_dir )
+        else:
+            self.lastdir = self.start_dir
+        self.default_host = self.Setting.get('default_host', 'radikal.ru')
+        _style = self.Setting.get('style')
+        #end load setting
 
 
         QtGui.QWidget.__init__(self, parent)
@@ -359,6 +361,8 @@ class qUimge( QtGui.QMainWindow ):
         connect(self.WidgetsTree.actionAbout,
                 SIGNAL("activated()"), self.about_dialog.exec_ )
         connect(self.WidgetsTree.actionPreferences,
+                SIGNAL("activated()"), self.setting_dialog.exec_ )
+        connect(self.WidgetsTree.actionPreferences_2,
                 SIGNAL("activated()"), self.setting_dialog.exec_ )
 
         connect(self.WidgetsTree.StopButton,
@@ -575,7 +579,6 @@ class qUimge( QtGui.QMainWindow ):
                 break
 
         postupload()
-
 
     def _update_result(self, index_or_str=None):
         '''docstring for _update_result'''
