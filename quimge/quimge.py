@@ -29,7 +29,7 @@ import copy
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QPixmap,QIcon
 from PyQt4.QtCore import QString, QDir, QFileInfo, QVariant
-DEBUG = False
+DEBUG = True
 
 if not DEBUG:
     if sys.platform != 'win32':
@@ -279,7 +279,6 @@ class qUimge( QtGui.QMainWindow ):
         self.about_dialog = About(self)
         self.setting_dialog = qUimge_setting_dialog( self.Setting, self)
 
-
         style = self.app.style()
         self._init_SIGNALS()
         self._initSelectHost()
@@ -320,6 +319,12 @@ class qUimge( QtGui.QMainWindow ):
     def keyPress_Event(self, event):
         print event
         event.ignore()
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+    def dropEvent(self, event):
+        self._add_files([u.path() for u in event.mimeData().urls()])
 
     def _init_SIGNALS(self):
         '''docstring for _init_SIGNALS'''
