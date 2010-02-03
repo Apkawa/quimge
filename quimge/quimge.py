@@ -27,6 +27,7 @@ import sys
 import copy
 
 from PyQt4 import QtCore, QtGui
+from PyQt4 import Qt
 from PyQt4.QtGui import QPixmap,QIcon
 from PyQt4.QtCore import QString, QDir, QFileInfo, QVariant
 DEBUG = True
@@ -110,7 +111,8 @@ def make_hosts_combobox(combobox=None, default_host=None):
             ico = get_favicon( host, ico_path)
         selhost.addItem( ico, " %s"%host, [host, obj] )
     if default_host:
-        selhost.setCurrentIndex( HOSTS.keys().index( default_host ))
+            index = selhost.findText( default_host, QtCore.Qt.MatchEndsWith )
+            selhost.setCurrentIndex( index if index else 1 )
     return selhost
 
 class Setting:
@@ -158,33 +160,36 @@ def About(parent=None):
     return dialog
 
 class qUimge_setting_dialog( object):
-    def __init__(self, _Setting, parent=None):
+    def __init__(self, setting, parent=None):
         '''docstring for __init__'''
+
         self.setting_dialog = Ui_qUimge_setting()
         self.dialog = QtGui.QDialog( parent )
         self.setting_dialog.setupUi( self.dialog )
-        self.Setting = _Setting
+        self.Setting = setting
         self.set_signals()
 
+        self.style = self.Setting.get('style')
+        self.default_host = self.Setting.get('default_host')
+
         self.setting_dialog.list_styles.addItems( QtGui.QStyleFactory.keys() )
+        self.setting_dialog.list_styles.setCurrentIndex( self.setting_dialog.list_styles.findText( self.style) )
         self.select_default_host = self.setting_dialog.select_default_host
-        make_hosts_combobox( self.select_default_host, self.Setting.get('default_host'))
+        make_hosts_combobox( self.select_default_host, self.default_host )
 
     def set_signals(self):
         connect = self.dialog.connect
         SIGNAL = QtCore.SIGNAL
         SLOT = QtCore.SLOT
-        connect( self.setting_dialog.list_styles,
-                SIGNAL("currentIndexChanged(QString)"), self._set_style )
         connect( self.setting_dialog.buttonBox, SIGNAL("accepted()"), self.accept)
         pass
     def exec_(self):
         self.dialog.exec_()
-    def _set_style(self, string):
-        print "nya"
-        self.dialog.setStyle(string)
     def accept(self):
-        print "Nya!"
+        cur_h  = self.select_default_host.currentIndex()
+        host, obj = self.select_default_host.itemData(cur_h).toPyObject()
+        self.Setting.set("default_host", host)
+        self.Setting.set("style", self.setting_dialog.list_styles.currentText())
         self.dialog.accept()
 
 class UploadThread( QtCore.QThread):
@@ -235,7 +240,8 @@ class qUimge( QtGui.QMainWindow ):
         '''
         self.Setting = Setting()
         #self.Setting.begin_group('General')
-        self.lastdir = self.Setting.get('lastdir', QtCore.QDir().homePath() )
+        self.start_dir = self.Setting.get('startdir', QtCore.QDir().homePath() )
+        self.lastdir = self.Setting.get('lastdir', self.start_dir )
         self.default_host = self.Setting.get('default_host', 'radikal.ru')
         _style = self.Setting.get('style', 'qtcurve')
         #self.Setting.end_group()
@@ -281,7 +287,7 @@ class qUimge( QtGui.QMainWindow ):
 
         style = self.app.style()
         self._init_SIGNALS()
-        self._initSelectHost()
+        make_hosts_combobox(self.WidgetsTree.SelectHost, self.default_host)
 
         self.WidgetsTree.ModePrint.addItem(
                 "Direct url", QtCore.QVariant("Direct") )
@@ -298,7 +304,7 @@ class qUimge( QtGui.QMainWindow ):
 
     def update_setting(self):
         self._set_current_host()
-        self.Setting.set('default_host', self.default_host)
+        #self.Setting.set('default_host', self.default_host)
         self.Setting.set('lastdir', self.lastdir)
         self.Setting.save()
 
@@ -323,6 +329,7 @@ class qUimge( QtGui.QMainWindow ):
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
+
     def dropEvent(self, event):
         self._add_files([u.path() for u in event.mimeData().urls()])
 
@@ -378,52 +385,6 @@ class qUimge( QtGui.QMainWindow ):
         if filenames:
             self._add_files( filenames )
 
-    def _initSelectHost(self):
-        def get_favicon( host, ico_path):
-            #TODO переписать на Qt
-            fail_pixmap = QPixmap(':/app/text-html.png')
-            if not os.path.exists(ico_path):
-                import urllib
-                u = urllib.urlopen('http://favicon.yandex.net/favicon/%s'%host).read()
-                #http://www.google.com/s2/favicons?domain=www.labnol.org
-                tmp = open( '/tmp/tmp.png','w+b')
-                tmp.write( u )
-                tmp.close()
-                pixmap = QPixmap("/tmp/tmp.png")
-                if pixmap.size() == QtCore.QSize(1, 1):
-                    pixmap = fail_pixmap
-                tmp_ico = QIcon( pixmap )
-                pixmap.save( QString( ico_path) )
-
-            return tmp_ico
-
-        "Устанавливаем выпадающий список выбора хостингов c иконостасом"
-
-        ico_host_dir = os.path.join(  SCRIPT_DIR ,'icons','hosts')
-        if not os.path.exists( ico_host_dir):
-            ico_host_dir = os.path.join(
-                    os.sys.prefix,
-                    'share',
-                    'quimge',
-                    'icons',
-                    'hosts')
-
-        selhost  = self.WidgetsTree.SelectHost
-        _hosts = dict(
-                [(v.host,QtCore.QVariant( v ) )
-                    for k,v in uimge.Hosts.hosts_dict.items()]
-                )
-        _h = sorted(_hosts.keys() )
-        for host in _h:
-            ico_name = host+'.png'
-            ico_path = os.path.join( ico_host_dir,ico_name)
-            ico = QIcon( QPixmap( ico_path ) )
-            if ico.isNull():
-                ico = get_favicon( host, ico_path)
-
-            selhost.addItem( ico, " %s"%host, _hosts.get( host) )
-        selhost.setCurrentIndex( _h.index( self.default_host ))
-
     def _add_file(self, fileinfo):
         '''docstring for _add_file'''
         thumb_size = 100
@@ -435,7 +396,6 @@ class qUimge( QtGui.QMainWindow ):
             return
         filename = fileinfo.fileName()
         size = fileinfo.size()
-        print size
         size_str = human( size )
 
         if len(filename) > max_length_filename:
@@ -575,8 +535,8 @@ class qUimge( QtGui.QMainWindow ):
 
     def _set_current_host( self):
         cur_h  = self.WidgetsTree.SelectHost.currentIndex()
-        host_key = self.WidgetsTree.SelectHost.itemData(cur_h).toPyObject()
-        self.Uimge.set_host( host_key )
+        host, obj = self.WidgetsTree.SelectHost.itemData(cur_h).toPyObject()
+        self.Uimge.set_host(obj)
 
     def _upload(self):
         '''docstring for _upload'''
