@@ -29,7 +29,7 @@ import copy
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QPixmap,QIcon
 from PyQt4.QtCore import QString, QDir, QFileInfo, QVariant
-DEBUG = True
+DEBUG = False
 
 if not DEBUG:
     if sys.platform != 'win32':
