@@ -8,7 +8,7 @@
     <x>0</x>
     <y>0</y>
     <width>503</width>
-    <height>552</height>
+    <height>554</height>
    </rect>
   </property>
   <property name="acceptDrops">
@@ -103,9 +103,6 @@
             <property name="styleSheet">
              <string notr="true"/>
             </property>
-            <property name="text">
-             <string notr="true"/>
-            </property>
             <property name="icon">
              <iconset>
               <normaloff>:/app/gtk-close.png</normaloff>:/app/gtk-close.png</iconset>
@@ -122,9 +119,6 @@
            <widget class="QPushButton" name="ClearUploadList">
             <property name="toolTip">
              <string>Clear</string>
-            </property>
-            <property name="text">
-             <string notr="true"/>
             </property>
             <property name="icon">
              <iconset>

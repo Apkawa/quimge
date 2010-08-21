@@ -98,20 +98,22 @@ def make_hosts_combobox(combobox=None, default_host=None):
                 'quimge',
                 'icons',
                 'hosts')
-    if combobox:
+
+    if isinstance(combobox, QtGui.QComboBox):
         selhost  = combobox
     else:
         selhost  = QtGui.QComboBox()
+
     for host, obj in HOSTS.items():
         ico_name = host+'.png'
         ico_path = os.path.join( ico_host_dir,ico_name)
         ico = QIcon( QPixmap( ico_path ) )
         if ico.isNull():
             ico = get_favicon( host, ico_path)
-        selhost.addItem( ico, " %s"%host, [host, obj] )
+        selhost.addItem(ico, " %s"%host, QVariant([host, obj]) )
     if default_host:
-            index = selhost.findText( default_host, QtCore.Qt.MatchEndsWith )
-            selhost.setCurrentIndex( index if index else 1 )
+        index = selhost.findText( default_host, QtCore.Qt.MatchEndsWith )
+        selhost.setCurrentIndex( index if index else 1 )
     return selhost
 
 class Setting:
@@ -289,7 +291,9 @@ class qUimge( QtGui.QMainWindow ):
 
         style = self.app.style()
         self._init_SIGNALS()
-        make_hosts_combobox(self.WidgetsTree.SelectHost, self.default_host)
+        
+        self.SelectHost = self.WidgetsTree.SelectHost
+        make_hosts_combobox(self.SelectHost, self.default_host)
 
         self.WidgetsTree.ModePrint.addItem(
                 "Direct url", QtCore.QVariant("Direct") )
@@ -538,8 +542,8 @@ class qUimge( QtGui.QMainWindow ):
         self._update_result()
 
     def _set_current_host( self):
-        cur_h  = self.WidgetsTree.SelectHost.currentIndex()
-        host, obj = self.WidgetsTree.SelectHost.itemData(cur_h).toPyObject()
+        cur_h  = self.SelectHost.currentIndex()
+        host, obj = self.SelectHost.itemData(cur_h).toPyObject()
         self.Uimge.set_host(obj)
 
     def _upload(self):
@@ -567,8 +571,8 @@ class qUimge( QtGui.QMainWindow ):
         for i in xrange( count ):
             item = self.upload_list.item(i)
             data = item.data( QtCore.Qt.UserRole).toPyObject()
-            path = unicode( data.get( QString('path') ), 'utf8' )
-            upload_thread.setup( self.Uimge, path)
+            path = data.get( QString('path') )
+            upload_thread.setup( self.Uimge, unicode(path).encode("utf-8"))
             upload_thread.start()
             while upload_thread.isRunning():
                 self.app.processEvents()
